@@ -2,6 +2,7 @@ import os
 import requests
 import json
 
+
 # 1. 설정
 API_KEY = os.getenv("GEMINI_API_KEY")
 # v1beta 대신 v1을 사용하고, 모델 이름 형식을 바꿨습니다.
