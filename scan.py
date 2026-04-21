@@ -1,54 +1,41 @@
 import os
-import sys
-from google import genai
+import requests
+import json
 
-api_key = os.getenv("GEMINI_API_KEY")
-client = genai.Client(api_key=api_key)
+# 1. 설정
+API_KEY = os.getenv("GEMINI_API_KEY")
+# 모델 주소를 v1으로 고정하여 404 에러 방지
+URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
 
 def run_scan():
     # 분석할 파일 찾기
-    files_to_scan = [f for f in os.listdir('.') if f.endswith('.py') and f != 'scan.py']
-    if not files_to_scan:
-        files_to_scan = ['scan.py']
+    files = [f for f in os.listdir('.') if f.endswith('.py') and f != 'scan.py']
+    target_file = files[0] if files else 'scan.py'
+    
+    print(f"[{target_file}] 보안 분석 중...")
+    
+    with open(target_file, 'r', encoding='utf-8') as f:
+        code = f.read()
 
-    # 시도해볼 모델 명칭 후보군 (404 에러 방지용)
-    model_variants = [
-        "gemini-1.5-flash",          # 기본
-        "models/gemini-1.5-flash",   # 전체 경로
-        "gemini-1.5-flash-latest",   # 최신 태그
-        "gemini-pro"                 # 하위 호환용
-    ]
+    # 2. 제미나이에게 보낼 데이터
+    payload = {
+        "contents": [{
+            "parts": [{
+                "text": f"당신은 시니어 보안 컨설턴트입니다. 다음 코드의 취약점을 분석하고 수정 코드를 제안하세요:\n\n{code}"
+            }]
+        }]
+    }
 
-    for target_file in files_to_scan:
-        print(f"\n--- [{target_file}] 분석 시작 ---")
-        try:
-            with open(target_file, 'r', encoding='utf-8') as f:
-                code_content = f.read()
+    # 3. 직접 요청 보내기
+    response = requests.post(URL, json=payload)
+    result = response.json()
 
-            success = False
-            for model_name in model_variants:
-                try:
-                    print(f"[{model_name}] 모델로 시도 중...")
-                    response = client.models.generate_content(
-                        model=model_name,
-                        contents=f"시니어 보안 컨설턴트로서 다음 코드의 취약점을 분석해줘:\n\n{code_content}"
-                    )
-                    print(f"=== {target_file} 분석 성공 ({model_name}) ===")
-                    print(response.text)
-                    success = True
-                    break # 성공하면 다음 파일로
-                except Exception as e:
-                    if "404" in str(e):
-                        continue # 404면 다음 모델명 시도
-                    else:
-                        print(f"오류 발생: {e}")
-                        break
-            
-            if not success:
-                print(f"[{target_file}] 모든 모델 명칭 시도 실패 (404 등)")
-
-        except Exception as e:
-            print(f"파일 읽기 오류: {e}")
+    if response.status_code == 200:
+        print(f"\n=== {target_file} 보안 분석 결과 ===")
+        print(result['candidates'][0]['content']['parts'][0]['text'])
+    else:
+        print(f"분석 실패 (에러코드: {response.status_code})")
+        print(json.dumps(result, indent=2, ensure_ascii=False))
 
 if __name__ == "__main__":
     run_scan()
