@@ -2,17 +2,39 @@ import os
 import requests
 import json
 
-# 1. 설정
+# 설정
 API_KEY = os.getenv("GEMINI_API_KEY")
-# 모델 이름을 화면에 떠 있는 'gemini-3-flash-preview'로 정확히 바꿨습니다.
-URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key={API_KEY}"
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+PR_NUMBER = os.getenv("PR_NUMBER")
+REPO = os.getenv("REPO")
+
+GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key={API_KEY}"
+
+def post_github_comment(content):
+    if not PR_NUMBER:
+        print("PR 환경이 아니므로 댓글을 남기지 않습니다.")
+        return
+
+    url = f"https://api.github.com/repos/{REPO}/issues/{PR_NUMBER}/comments"
+    headers = {
+        "Authorization": f"token {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github.v3+json"
+    }
+    data = {"body": f"### 🤖 Gemini AI 보안 분석 리포트\n\n{content}"}
+    
+    response = requests.post(url, headers=headers, json=data)
+    if response.status_code == 201:
+        print("✅ GitHub PR에 성공적으로 댓글을 남겼습니다.")
+    else:
+        print(f"❌ 댓글 작성 실패: {response.status_code}")
+        print(response.text)
 
 def run_scan():
     # 분석할 파일 찾기
     files = [f for f in os.listdir('.') if f.endswith('.py') and f != 'scan.py']
     target_file = files[0] if files else 'scan.py'
     
-    print(f"[{target_file}] 보안 분석 시작 (Gemini 3 모델 사용)...")
+    print(f"[{target_file}] 보안 분석 시작...")
     
     try:
         with open(target_file, 'r', encoding='utf-8') as f:
@@ -20,28 +42,25 @@ def run_scan():
 
         payload = {
             "contents": [{
-                "parts": [{
-                    "text": f"당신은 전문 보안 컨설턴트입니다. 다음 코드의 보안 취약점을 분석하고 수정안을 제시하세요:\n\n{code}"
-                }]
+                "parts": [{"text": f"당신은 전문 보안 컨설턴트입니다. 다음 코드의 보안 취약점을 분석하고 수정안을 마크다운 형식으로 제시하세요:\n\n{code}"}]
             }]
         }
 
-        # 2. 요청 전송
-        response = requests.post(URL, json=payload)
+        response = requests.post(GEMINI_URL, json=payload)
         result = response.json()
 
         if response.status_code == 200:
-            print(f"\n✅ 분석 성공! (Gemini 3 Flash 사용)")
-            print("-" * 50)
-            # 결과 출력
-            print(result['candidates'][0]['content']['parts'][0]['text'])
-            print("-" * 50)
+            analysis_text = result['candidates'][0]['content']['parts'][0]['text']
+            print("\n--- 분석 완료 ---")
+            print(analysis_text)
+            
+            # 분석 결과를 댓글로 남기기
+            post_github_comment(analysis_text)
         else:
-            print(f"❌ 분석 실패 (에러코드: {response.status_code})")
-            print(json.dumps(result, indent=2, ensure_ascii=False))
+            print(f"❌ 분석 실패: {response.status_code}")
 
     except Exception as e:
-        print(f"⚠️ 실행 중 오류 발생: {e}")
+        print(f"⚠️ 오류 발생: {e}")
 
 if __name__ == "__main__":
     run_scan()
