@@ -5,9 +5,6 @@ on: [push]
 jobs:
   scan:
     runs-on: ubuntu-latest
-    env:
-      # 깃허브가 경고한 Node.js 24 강제 설정을 미리 적용합니다.
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
