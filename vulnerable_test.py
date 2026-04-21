@@ -10,5 +10,5 @@ def login(user_id, password):
     cursor.execute(query)
     return cursor.fetchone()
 
-
+# 보안 점검 테스트용
 
