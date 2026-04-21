@@ -1,30 +1,37 @@
 import os
 import google.generativeai as genai
 
-# 1. API 키 설정
+# API 키 설정
 api_key = os.getenv("GEMINI_API_KEY")
+if not api_key:
+    print("에러: GEMINI_API_KEY가 설정되지 않았습니다.")
+    exit(1)
+
 genai.configure(api_key=api_key)
 
-# 2. 모델 설정 (에러 방지를 위해 확실한 명칭인 'gemini-1.5-flash-latest' 사용)
-model = genai.GenerativeModel('gemini-1.5-flash-latest')
+# 모델 설정 (가장 기본 명칭 사용)
+try:
+    model = genai.GenerativeModel('gemini-1.5-flash')
 
-# 3. 분석할 코드
-target_code = """
-def delete_user(user_id):
-    query = f"DELETE FROM users WHERE id = '{user_id}'"
-    db.execute(query)
-"""
+    # 분석할 취약한 코드 예시
+    target_code = """
+    def login(user_id):
+        query = "SELECT * FROM users WHERE id = '" + user_id + "'"
+        db.execute(query)
+    """
 
-# 4. 분석 요청
-prompt = f"""
-너는 시니어 보안 컨설턴트야. 
-아래 코드의 취약점을 분석하고, 취약점 명칭, 위험도, 공격 시나리오, 그리고 보안 가이드가 반영된 안전한 코드를 작성해줘.
+    prompt = f"""
+    당신은 숙련된 보안 컨설턴트입니다. 
+    다음 코드의 보안 취약점을 점검하고 보고서를 작성하세요.
+    
+    [분석할 코드]
+    {target_code}
+    """
 
-분석할 코드:
-{target_code}
-"""
+    response = model.generate_content(prompt)
+    print("=== Gemini 보안 분석 결과 ===")
+    print(response.text)
 
-response = model.generate_content(prompt)
-
-print("=== Gemini 보안 분석 결과 ===")
-print(response.text)
+except Exception as e:
+    print(f"분석 중 에러 발생: {e}")
+    exit(1)
