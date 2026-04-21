@@ -17,7 +17,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install google-genai
+          pip install requests  # 라이브러리를 requests로 바꿨습니다.
 
       - name: Run Analysis
         env:
