@@ -12,11 +12,12 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10' # 확실하게 3.10 이상을 사용합니다.
+          python-version: '3.11' # 버전을 3.11로 더 높였습니다.
 
       - name: Install dependencies
         run: |
-          pip install -U google-generativeai
+          pip install --upgrade pip
+          pip install -U google-generativeai # 최신 버전 강제 업데이트
 
       - name: Run Analysis
         env:
