@@ -5,10 +5,10 @@ import google.generativeai as genai
 api_key = os.getenv("GEMINI_API_KEY")
 genai.configure(api_key=api_key)
 
-# 2. 모델 설정 (Gemini 1.5 Flash가 빠르고 무료 효율이 좋습니다)
-model = genai.GenerativeModel('gemini-1.5-flash')
+# 2. 모델 설정 (에러 방지를 위해 확실한 명칭인 'gemini-1.5-flash-latest' 사용)
+model = genai.GenerativeModel('gemini-1.5-flash-latest')
 
-# 3. 분석할 코드 (나중에는 실제 PR 코드를 가져오게 바꿀 겁니다)
+# 3. 분석할 코드
 target_code = """
 def delete_user(user_id):
     query = f"DELETE FROM users WHERE id = '{user_id}'"
